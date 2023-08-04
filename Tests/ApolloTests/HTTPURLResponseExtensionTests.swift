@@ -56,6 +56,7 @@ final class HTTPURLResponseExtensionTests: XCTestCase {
   }
 
   // MARK: - Multipart tests
+
   func test__isMultipart__givenMultipartMixedContentType_shouldReturnTrue() {
     // given
     let response = createResponse(
@@ -130,6 +131,34 @@ final class HTTPURLResponseExtensionTests: XCTestCase {
 
     // then
     expect(response.multipartHeaderComponents.boundary).to(equal("apollo"))
+  }
+
+  // MARK: - MultipartHeaderComponents tests
+
+  func test__parsing__givenSpacesBetweenComponents_shouldReturnAllComponents() {
+    // given
+    let response = createResponse(
+      statusCode: 0,
+      headers: ["Content-Type": "multipart/mixed; boundary=apollo; protocolSpec=1.0"]
+    )
+
+    // then
+    expect(response.multipartHeaderComponents.media).to(equal("mixed"))
+    expect(response.multipartHeaderComponents.boundary).to(equal("apollo"))
+    expect(response.multipartHeaderComponents.protocol).to(equal("protocolSpec=1.0"))
+  }
+
+  func test__parsing__givenNoSpacesBetweenComponents_shouldReturnAllComponents() {
+    // given
+    let response = createResponse(
+      statusCode: 0,
+      headers: ["Content-Type": "multipart/mixed;boundary=apollo;protocolSpec=1.0"]
+    )
+
+    // then
+    expect(response.multipartHeaderComponents.media).to(equal("mixed"))
+    expect(response.multipartHeaderComponents.boundary).to(equal("apollo"))
+    expect(response.multipartHeaderComponents.protocol).to(equal("protocolSpec=1.0"))
   }
 
 }
