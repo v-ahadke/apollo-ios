@@ -30,7 +30,7 @@ final class MultipartResponseParsingInterceptorTests: XCTestCase {
     wait(for: [expectation], timeout: defaultTimeout)
   }
 
-  func test__error__givenResponse_withMissingMultipartBoundaryHeader_shouldReturnError() throws {
+  func test__error__givenResponse_withHeaderMissingMultipartBoundary_shouldReturnError() throws {
     let subject = InterceptorTester(interceptor: MultipartResponseParsingInterceptor())
 
     let expectation = expectation(description: "Received callback")
@@ -53,7 +53,7 @@ final class MultipartResponseParsingInterceptorTests: XCTestCase {
     wait(for: [expectation], timeout: defaultTimeout)
   }
 
-  func test__error__givenResponse_withMissingMultipartProtocolHeader_shouldReturnError() throws {
+  func test__error__givenResponse_withHeaderMissingMultipartProtocolSpec_shouldReturnError() throws {
     let subject = InterceptorTester(interceptor: MultipartResponseParsingInterceptor())
 
     let expectation = expectation(description: "Received callback")
@@ -76,7 +76,7 @@ final class MultipartResponseParsingInterceptorTests: XCTestCase {
     wait(for: [expectation], timeout: defaultTimeout)
   }
 
-  func test__error__givenResponse_withUnknownMultipartParser_shouldReturnError() throws {
+  func test__error__givenResponse_withUnknownMultipartProtocolSpec_shouldReturnError() throws {
     let subject = InterceptorTester(interceptor: MultipartResponseParsingInterceptor())
 
     let expectation = expectation(description: "Received callback")
