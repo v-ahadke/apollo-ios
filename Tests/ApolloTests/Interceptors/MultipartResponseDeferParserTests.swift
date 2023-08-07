@@ -186,6 +186,7 @@ final class MultipartResponseDeferParserTests: XCTestCase {
     }
   }
 
+  #warning("remove the nulls in this test when the executor can handle deferred data without explicit nulls - #3145")
   func test__parsing__givenInitialResponse_shouldReturnSuccess() throws {
     MockSchemaMetadata.stub_objectTypeForTypeName = {
       switch $0 {
@@ -258,6 +259,7 @@ final class MultipartResponseDeferParserTests: XCTestCase {
     wait(for: [expectation], timeout: defaultTimeout)
   }
 
+  #warning("remove the nulls in this test when the executor can handle deferred data without explicit nulls - #3145")
   func test__parsing__givenInitialResponseWithGraphQLError_shouldReturnSuccessWithGraphQLError() throws {
     let network = buildNetworkTransport(responseData: """
       --graphql
