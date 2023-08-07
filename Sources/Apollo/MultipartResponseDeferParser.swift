@@ -81,7 +81,10 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
         if let incremental = object.incremental {
 
         } else {
-          guard let serialized: Data = try? JSONSerializationFormat.serialize(value: object) else {
+          guard
+            let _ = object.data,
+            let serialized: Data = try? JSONSerializationFormat.serialize(value: object)
+          else {
             errorHandler(ParsingError.cannotParsePayloadData)
             return
           }
