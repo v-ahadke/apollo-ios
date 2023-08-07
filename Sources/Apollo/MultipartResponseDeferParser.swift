@@ -69,16 +69,11 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
         }
 
       case let .json(object):
-        if let label = object.label {
-        }
-
-        if let path = object.path {
-        }
-
         if let hasNext = object.hasNext {
         }
 
         if let incremental = object.incremental {
+          preconditionFailure("This will be done in #3147")
 
         } else {
           guard
@@ -116,7 +111,7 @@ fileprivate extension JSONObject {
     self["data"] as? JSONObject
   }
 
-  var incremental: JSONObject? {
-    self["incremental"] as? JSONObject
+  var incremental: [JSONObject]? {
+    self["incremental"] as? [JSONObject]
   }
 }
