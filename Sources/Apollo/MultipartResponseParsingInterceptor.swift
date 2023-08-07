@@ -9,12 +9,15 @@ public struct MultipartResponseParsingInterceptor: ApolloInterceptor {
   public enum ParsingError: Error, LocalizedError, Equatable {
     case noResponseToParse
     case cannotParseResponse
+    case cannotParseResponseData
 
     public var errorDescription: String? {
       switch self {
       case .noResponseToParse:
         return "There is no response to parse. Check the order of your interceptors."
       case .cannotParseResponse:
+        return "The response data could not be parsed."
+      case .cannotParseResponseData:
         return "The response data could not be parsed."
       }
     }
@@ -71,6 +74,16 @@ public struct MultipartResponseParsingInterceptor: ApolloInterceptor {
       return
     }
 
+    guard let dataString = String(data: response.rawData, encoding: .utf8) else {
+      chain.handleErrorAsync(
+        ParsingError.cannotParseResponseData,
+        request: request,
+        response: response,
+        completion: completion
+      )
+      return
+    }
+
     let dataHandler: ((Data) -> Void) = { data in
       let response = HTTPResponse<Operation>(
         response: response.httpResponse,
@@ -95,12 +108,11 @@ public struct MultipartResponseParsingInterceptor: ApolloInterceptor {
       )
     }
 
-    parser.parse(
-      data: response.rawData,
-      boundary: boundary,
-      dataHandler: dataHandler,
-      errorHandler: errorHandler
-    )
+    for chunk in dataString.components(separatedBy: "--\(boundary)") {
+      if chunk.isEmpty || chunk.isBoundaryMarker { continue }
+
+      parser.parse(chunk: chunk, dataHandler: dataHandler, errorHandler: errorHandler)
+    }
   }
 }
 
@@ -111,11 +123,18 @@ protocol MultipartResponseSpecificationParser {
   /// in an HTTP response.
   static var protocolSpec: String { get }
 
-  /// Function that will be called to process the response data.
+  /// Function called to process each data line of the chunked response.
   static func parse(
-    data: Data,
-    boundary: String,
+    chunk: String,
     dataHandler: ((Data) -> Void),
     errorHandler: ((Error) -> Void)
   )
+}
+
+extension MultipartResponseSpecificationParser {
+  static var dataLineSeparator: StaticString { "\r\n\r\n" }
+}
+
+fileprivate extension String {
+  var isBoundaryMarker: Bool { self == "--" }
 }

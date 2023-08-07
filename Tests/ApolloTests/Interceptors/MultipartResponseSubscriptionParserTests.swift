@@ -7,6 +7,8 @@ import ApolloInternalTestHelpers
 final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
   let defaultTimeout = 0.5
+  let testParser = MultipartResponseSubscriptionParser.self
+  let testSpec = MultipartResponseSubscriptionParser.protocolSpec
 
   // MARK: - Error tests
 
@@ -18,7 +20,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
     subject.intercept(
       request: .mock(operation: MockSubscription.mock()),
       response: .mock(
-        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;subscriptionSpec=1.0"],
+        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;\(testSpec)"],
         data: """
           --graphql
           content-type: test/custom
@@ -28,7 +30,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
               "key" : "value"
             }
           }
-          --graphql
+          --graphql--
           """.crlfFormattedData()
       )
     ) { result in
@@ -38,7 +40,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
       expect(result).to(beFailure { error in
         expect(error).to(
-          matchError(MultipartResponseSubscriptionParser.ParsingError.unsupportedContentType(type: "test/custom"))
+          matchError(self.testParser.ParsingError.unsupportedContentType(type: "test/custom"))
         )
       })
     }
@@ -54,7 +56,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
     subject.intercept(
       request: .mock(operation: MockSubscription.mock()),
       response: .mock(
-        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;subscriptionSpec=1.0"],
+        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;\(self.testSpec)"],
         data: """
           --graphql
           content-type: application/json
@@ -66,7 +68,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
               }
             ]
           }
-          --graphql
+          --graphql--
           """.crlfFormattedData()
       )
     ) { result in
@@ -76,7 +78,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
       expect(result).to(beFailure { error in
         expect(error).to(
-          matchError(MultipartResponseSubscriptionParser.ParsingError.irrecoverableError(message: "forced test failure!"))
+          matchError(self.testParser.ParsingError.irrecoverableError(message: "forced test failure!"))
         )
       })
     }
@@ -92,13 +94,13 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
     subject.intercept(
       request: .mock(operation: MockSubscription.mock()),
       response: .mock(
-        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;subscriptionSpec=1.0"],
+        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;\(self.testSpec)"],
         data: """
           --graphql
           content-type: application/json
 
           not_a_valid_json_object
-          --graphql
+          --graphql--
           """.crlfFormattedData()
       )
     ) { result in
@@ -108,7 +110,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
       expect(result).to(beFailure { error in
         expect(error).to(
-          matchError(MultipartResponseSubscriptionParser.ParsingError.cannotParseChunkData)
+          matchError(self.testParser.ParsingError.cannotParseChunkData)
         )
       })
     }
@@ -124,7 +126,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
     subject.intercept(
       request: .mock(operation: MockSubscription.mock()),
       response: .mock(
-        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;subscriptionSpec=1.0"],
+        headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;\(self.testSpec)"],
         data: """
           --graphql
           content-type: application/json
@@ -132,7 +134,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
           {
             "key": "value"
           }
-          --graphql
+          --graphql--
           """.crlfFormattedData()
       )
     ) { result in
@@ -142,7 +144,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
       expect(result).to(beFailure { error in
         expect(error).to(
-          matchError(MultipartResponseSubscriptionParser.ParsingError.cannotParsePayloadData)
+          matchError(self.testParser.ParsingError.cannotParsePayloadData)
         )
       })
     }
@@ -167,7 +169,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
     responseData: Data
   ) -> RequestChainNetworkTransport {
     let client = MockURLSessionClient(
-      response: .mock(headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;subscriptionSpec=1.0"]),
+      response: .mock(headerFields: ["Content-Type": "multipart/mixed;boundary=graphql;\(self.testSpec)"]),
       data: responseData
     )
 
@@ -189,7 +191,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
       content-type: application/json
 
       {}
-      --graphql
+      --graphql--
       """.crlfFormattedData()
     )
 
@@ -211,7 +213,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
       {
         "payload": null
       }
-      --graphql
+      --graphql--
       """.crlfFormattedData()
     )
 
@@ -238,7 +240,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
           }
         }
       }
-      --graphql
+      --graphql--
       """.crlfFormattedData()
     )
 
@@ -289,7 +291,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
           }
         }
       }
-      --graphql
+      --graphql--
       """.crlfFormattedData()
     )
 
@@ -336,7 +338,7 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
           ]
         }
       }
-      --graphql
+      --graphql--
       """.crlfFormattedData()
     )
 
@@ -356,46 +358,6 @@ final class MultipartResponseSubscriptionParserTests: XCTestCase {
 
         expectation.fulfill()
 
-      case let .failure(error):
-        fail("Unexpected failure result - \(error)")
-      }
-    }
-
-    wait(for: [expectation], timeout: defaultTimeout)
-  }
-
-  func test__parsing__givenEndOfStream_shouldReturnSuccess() throws {
-    let network = buildNetworkTransport(responseData: """
-      --graphql
-      content-type: application/json
-
-      {
-        "payload": {
-          "data": {
-            "__typename": "Time",
-            "ticker": 5
-          }
-        }
-      }
-      --graphql--
-      """.crlfFormattedData()
-    )
-
-    let expectedData = try Time(data: [
-      "__typename": "Time",
-      "ticker": 5
-    ], variables: nil)
-
-    let expectation = expectation(description: "Multipart data received")
-
-    _ = network.send(operation: MockSubscription<Time>()) { result in
-      defer {
-        expectation.fulfill()
-      }
-
-      switch (result) {
-      case let .success(data):
-        expect(data.data).to(equal(expectedData))
       case let .failure(error):
         fail("Unexpected failure result - \(error)")
       }
