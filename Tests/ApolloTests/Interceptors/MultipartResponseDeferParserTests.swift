@@ -116,19 +116,6 @@ final class MultipartResponseDeferParserTests: XCTestCase {
 
   // MARK: Parsing tests
 
-  private class Hero: MockSelectionSet {
-    typealias Schema = MockSchemaMetadata
-
-    override class var __selections: [Selection] {[
-      .field("__typename", String.self),
-      .field("name", String.self),
-      .field("films", [String].self),
-    ]}
-
-    var name: String { __data["name"] }
-    var films: [String] { __data["films"] }
-  }
-
   private func buildNetworkTransport(
     responseData: Data
   ) -> RequestChainNetworkTransport {
@@ -149,19 +136,83 @@ final class MultipartResponseDeferParserTests: XCTestCase {
     )
   }
 
+  struct Types {
+    static let Product = Object(typename: "Product", implementedInterfaces: [])
+  }
+
+  private class QueryData: MockSelectionSet {
+    typealias Schema = MockSchemaMetadata
+
+    override class var __selections: [Selection] {[
+      .field("allProducts", [AllProduct?]?.self),
+    ]}
+
+    var allProducts: [AllProduct?]? { __data["allProducts"] }
+
+    class AllProduct: MockSelectionSet {
+      typealias Schema = MockSchemaMetadata
+
+      override class var __selections: [Selection] {[
+        .field("__typename", String.self),
+        .field("id", String.self),
+        .inlineFragment(AsProduct.self, deferred: true),
+      ]}
+
+      var id: String { __data["id"] }
+
+      var asProduct: AsProduct? { _asInlineFragment() }
+
+      class AsProduct: MockTypeCase {
+        typealias Schema = MockSchemaMetadata
+
+        override class var __parentType: ParentType { Types.Product }
+        override class var __selections: [Selection] {[
+          .field("variation", Variation?.self),
+        ]}
+
+        var variation: Variation? { __data["variation"] }
+
+        class Variation: MockSelectionSet {
+          override class var __selections: [Selection] {[
+            .field("__typename", String.self),
+            .field("id", String.self),
+            .field("name", String.self),
+          ]}
+
+          var id: String { __data["id"] }
+          var name: String? { __data["name"] }
+        }
+      }
+    }
+  }
+
   func test__parsing__givenInitialResponse_shouldReturnSuccess() throws {
+    MockSchemaMetadata.stub_objectTypeForTypeName = {
+      switch $0 {
+      case "Product": return Types.Product
+      default: XCTFail(); return nil
+      }
+    }
+
     let network = buildNetworkTransport(responseData: """
       --graphql
       content-type: application/json
 
       {
         "data": {
-          "__typename": "Hero",
-          "name": "Luke Skywalker",
-          "films": [
-            "A New Hope",
-            "The Empire Strikes Back"
-          ]
+          "allProducts": [{
+            "__typename": "Product",
+            "id": "apollo-federation",
+            "variation": null
+          }, {
+            "__typename": "Product",
+            "id": "apollo-studio",
+            "variation": null
+          }, {
+            "__typename": "Product",
+            "id": "apollo-client",
+            "variation": null
+          }]
         },
         "hasNext": true
       }
@@ -169,18 +220,29 @@ final class MultipartResponseDeferParserTests: XCTestCase {
       """.crlfFormattedData()
     )
 
-    let expectedData = try Hero(data: [
-      "__typename": "Hero",
-      "name": "Luke Skywalker",
-      "films": [
-        "A New Hope",
-        "The Empire Strikes Back"
+    let expectedData = try QueryData(data: [
+      "allProducts": [
+        [
+          "__typename": "Product",
+          "id": "apollo-federation",
+          "variation": NSNull()
+        ],
+        [
+          "__typename": "Product",
+          "id": "apollo-studio",
+          "variation": NSNull()
+        ],
+        [
+          "__typename": "Product",
+          "id": "apollo-client",
+          "variation": NSNull()
+        ]
       ]
     ])
 
     let expectation = expectation(description: "Initial response received")
 
-    _ = network.send(operation: MockQuery<Hero>()) { result in
+    _ = network.send(operation: MockQuery<QueryData>()) { result in
       defer {
         expectation.fulfill()
       }
@@ -203,12 +265,19 @@ final class MultipartResponseDeferParserTests: XCTestCase {
 
       {
         "data": {
-          "__typename": "Hero",
-          "name": "Luke Skywalker",
-          "films": [
-            "A New Hope",
-            "The Empire Strikes Back"
-          ]
+          "allProducts": [{
+            "__typename": "Product",
+            "id": "apollo-federation",
+            "variation": null
+          }, {
+            "__typename": "Product",
+            "id": "apollo-studio",
+            "variation": null
+          }, {
+            "__typename": "Product",
+            "id": "apollo-client",
+            "variation": null
+          }]
         },
         "errors": [
           { "message": "Forced test error" }
@@ -219,18 +288,29 @@ final class MultipartResponseDeferParserTests: XCTestCase {
       """.crlfFormattedData()
     )
 
-    let expectedData = try Hero(data: [
-      "__typename": "Hero",
-      "name": "Luke Skywalker",
-      "films": [
-        "A New Hope",
-        "The Empire Strikes Back"
+    let expectedData = try QueryData(data: [
+      "allProducts": [
+        [
+          "__typename": "Product",
+          "id": "apollo-federation",
+          "variation": NSNull()
+        ],
+        [
+          "__typename": "Product",
+          "id": "apollo-studio",
+          "variation": NSNull()
+        ],
+        [
+          "__typename": "Product",
+          "id": "apollo-client",
+          "variation": NSNull()
+        ]
       ]
     ])
 
     let expectation = expectation(description: "Initial response received")
 
-    _ = network.send(operation: MockQuery<Hero>()) { result in
+    _ = network.send(operation: MockQuery<QueryData>()) { result in
       defer {
         expectation.fulfill()
       }
