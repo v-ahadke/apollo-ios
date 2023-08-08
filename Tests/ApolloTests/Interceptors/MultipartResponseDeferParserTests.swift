@@ -186,7 +186,6 @@ final class MultipartResponseDeferParserTests: XCTestCase {
     }
   }
 
-  #warning("remove the nulls in this test when the executor can handle deferred data without explicit nulls - #3145")
   func test__parsing__givenInitialResponse_shouldReturnSuccess() throws {
     MockSchemaMetadata.stub_objectTypeForTypeName = {
       switch $0 {
@@ -203,16 +202,13 @@ final class MultipartResponseDeferParserTests: XCTestCase {
         "data": {
           "allProducts": [{
             "__typename": "Product",
-            "id": "apollo-federation",
-            "variation": null
+            "id": "apollo-federation"
           }, {
             "__typename": "Product",
-            "id": "apollo-studio",
-            "variation": null
+            "id": "apollo-studio"
           }, {
             "__typename": "Product",
-            "id": "apollo-client",
-            "variation": null
+            "id": "apollo-client"
           }]
         },
         "hasNext": true
@@ -259,7 +255,6 @@ final class MultipartResponseDeferParserTests: XCTestCase {
     wait(for: [expectation], timeout: defaultTimeout)
   }
 
-  #warning("remove the nulls in this test when the executor can handle deferred data without explicit nulls - #3145")
   func test__parsing__givenInitialResponseWithGraphQLError_shouldReturnSuccessWithGraphQLError() throws {
     let network = buildNetworkTransport(responseData: """
       --graphql
@@ -269,16 +264,13 @@ final class MultipartResponseDeferParserTests: XCTestCase {
         "data": {
           "allProducts": [{
             "__typename": "Product",
-            "id": "apollo-federation",
-            "variation": null
+            "id": "apollo-federation"
           }, {
             "__typename": "Product",
-            "id": "apollo-studio",
-            "variation": null
+            "id": "apollo-studio"
           }, {
             "__typename": "Product",
-            "id": "apollo-client",
-            "variation": null
+            "id": "apollo-client"
           }]
         },
         "errors": [
@@ -331,4 +323,131 @@ final class MultipartResponseDeferParserTests: XCTestCase {
 
   #warning("TODO: Incremental response tests")
 
+  func test__parsing__givenIncrementalResponse_onField_shouldReturnSuccess() throws {
+    let network = buildNetworkTransport(responseData: """
+      --graphql
+      content-type: application/json
+
+      {
+        "incremental": [{
+          "label": "ProductVariationDefer",
+          "path": ["allProducts", 0],
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "OSS",
+              "name": "platform"
+            }
+          }
+        }, {
+          "label": "ProductVariationDefer",
+          "path": ["allProducts", 1],
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "platform",
+              "name": "platform-name"
+            }
+          }
+        }, {
+          "label": "ProductVariationDefer",
+          "path": ["allProducts", 1],
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "OSS",
+              "name": "client"
+            }
+          }
+        }],
+        "hasNext": false
+      }
+      --graphql--
+      """.crlfFormattedData()
+    )
+
+    fail("Test not written yet!")
+  }
+
+  func test__parsing__givenIncrementalResponse_onList_shouldReturnSuccess() throws {
+    let network = buildNetworkTransport(responseData: """
+      --graphql
+      content-type: application/json
+
+      {
+        "incremental": [{
+          "label": "ProductVariationList",
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "OSS",
+              "name": "platform"
+            }
+          },
+          "path": ["allProducts", 0]
+        }, {
+          "label": "ProductVariationList",
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "platform",
+              "name": "platform-name"
+            }
+          },
+          "path": ["allProducts", 1]
+        }, {
+          "label": "ProductVariationList",
+          "data": {
+            "__typename": "Product",
+            "variation": {
+              "__typename": "ProductVariation",
+              "id": "OSS",
+              "name": "client"
+            }
+          },
+          "path": ["allProducts", 2]
+        }]
+      }
+      --graphql--
+      """.crlfFormattedData()
+    )
+
+    fail("Test not written yet!")
+  }
+
+  func test__parsing__givenIncrementalResponseWithGraphQLError_shouldReturnSuccessWithGraphQLError() throws {
+    let network = buildNetworkTransport(responseData: """
+      --graphql
+      content-type: application/json
+
+      {
+        "incremental": [
+          {
+            "label": "homeWorldDefer",
+            "path": ["person"],
+            "data": {
+              "homeworld": {
+                "name": "Tatooine"
+              }
+            },
+            "errors": [
+              {
+                "message": "test error"
+              }
+            ]
+          }
+        ]
+        "hasNext": false
+      }
+      --graphql--
+      """.crlfFormattedData()
+    )
+
+    fail("Test not written yet!")
+  }
 }
